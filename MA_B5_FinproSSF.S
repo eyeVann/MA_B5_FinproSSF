@@ -66,3 +66,47 @@ init_serial:
   OUT TIFR1, R21            ; clear flag for sensor reading
   RET
 
+byte2decimal: ;Subroutine untuk menghitung jarak yang terbaca pada sensor
+;------------
+    CLR   R26             ;set counter1, initial value 0
+    CLR   R27             ;set counter2, initial value 0
+    ;--------------------------------------------------------
+l70:  CPI   R28, 100        ;compare R28 with 100
+Ret:  BRMI  l80             ;jump when R28 < 100
+    INC   R26             ;increment counter1 by 1
+    SUBI  R28, 100        ;R28 = R28 - 100
+    RJMP  l70
+    ;--------------------------------------------------------
+l80:  CPI   R28, 10         ;compare R28 with 10
+    BRMI  dsp             ;jump when R28 < 10
+    INC   R27             ;increment counter2 by 1
+    SUBI  R28, 10         ;R28 = R28 - 10
+    RJMP  l80
+    ;--------------------------------------------------------  
+dsp:  
+  CPI R27, 1
+  BRSH close   ;Jika jarak lebih dari 10 cm, branch ke close
+  CPI R27, 0
+  BREQ open ;Jika jarak kurang dari 10 cm, branch ke open
+  RET
+
+close: ;Subroutine yang dijalankan ketika jarak < 10 cm
+  LDI R30, lo8(message_close) ; Me-load low-byte dari pesan yang diinginkan ke Z
+  LDI R31, hi8(message_close) ; Me-load high-byte dari pesan yang diinginkan ke Z
+  RCALL agn
+  LDI R26, 1
+  LDI   ZL, lo8(rotate_pos_close) ;Berisi derajat dari perputaran servo
+  LDI   ZH, hi8(rotate_pos_close)
+  RCALL loop_servo ;Subroutine untuk memutar servo
+  RET
+ 
+open: ;Subroutine yang dijalankan ketika jarak > 10 cm
+  LDI R30, lo8(message_open) ; Me-load low-byte dari pesan yang diinginkan ke Z
+  LDI R31, hi8(message_open) ; Me-load high-byte dari pesan yang diinginkan ke Z
+  RCALL agn
+  LDI R26, 1
+  LDI   ZL, lo8(rotate_pos_open);Berisi derajat dari perputaran servo
+  LDI   ZH, hi8(rotate_pos_open)
+  RCALL loop_servo
+  RET
+  
