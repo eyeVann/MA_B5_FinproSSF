@@ -36,3 +36,33 @@ init_serial:
   LDI R24, 1<<UCSZ00 | 1<<UCSZ01 ; Async, no parity, 1 stop, 8 bits
   STS UCSR0C, R24; Menyimpan isi dari R24
   RET
+  
+  echo_PW: Subroutine reading sensor
+  ;---------------------------------
+  LDI R20, 0b00000000
+  STS TCCR1A, R20           ; Timer 1 Normal Mode
+  LDI R20, 0b11000101       ; rising edge detection
+  STS TCCR1A, R20           ; prescaler 1024, noise cancellation ON
+  ;---------------------------------
+  l1: 
+  IN R21, TIFR1
+  SBRS R21, ICF1
+  RJMP l1                   ; loop until rising edge detected
+  ;----------------------------------
+  LDS R16, ICR1L            ; store count value at rising edge
+  ;----------------------------------
+  OUT TIFR1, R21            ; clear flag for falling edge detection
+  LDI R20, 0b11000101       ;
+  STS TCCR1B, R20           ; set falling edge detection
+  ;----------------------------------
+  l2:
+  IN R21, TIFR1             
+  SBRS R21, ICF1
+  RJMP l2                   ; loop until falling edge detected
+  ;----------------------------------
+  LDS R28, R16              ; store count diff R28 = R28-R16
+  ;----------------------------------
+  SUB R28, R16               ;count diff R28 = R28-R16
+  OUT TIFR1, R21            ; clear flag for sensor reading
+  RET
+
